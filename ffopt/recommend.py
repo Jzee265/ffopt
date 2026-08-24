@@ -196,9 +196,34 @@ class Recommender:
         elif survival > 0.7:
             reasons.append(f"likely still there next turn ({survival:.0%}) — you can wait")
 
-        need = state.my_roster().starter_need(position)
-        if need > 0 and state.my_roster().size >= self.league.n_starter_slots - 3:
-            reasons.append(f"you still need {need} starting {position}")
+        roster = state.my_roster()
+        if roster.size >= self.league.n_starter_slots - 3:
+            open_slots = roster.open_starter_slots()
+            # Distinguish an unfilled slot only this position can take from one
+            # it merely competes for.  Saying "you still need a starting TE"
+            # when the tight end spot is already filled and only the flex is
+            # open is misleading, and misleading reasoning is worse than none.
+            dedicated = sum(
+                open_slots.get(s.name, 0)
+                for s in self.league.starters
+                if s.eligible == frozenset({position})
+            )
+            shared = sum(
+                open_slots.get(s.name, 0)
+                for s in self.league.starters
+                if position in s.eligible and len(s.eligible) > 1
+            )
+            if dedicated > 0:
+                reasons.append(f"you still need {dedicated} starting {position}")
+            elif shared > 0:
+                slot_names = {
+                    s.name
+                    for s in self.league.starters
+                    if position in s.eligible
+                    and len(s.eligible) > 1
+                    and open_slots.get(s.name, 0) > 0
+                }
+                reasons.append(f"would fill your open {'/'.join(sorted(slot_names))}")
 
         drift = self.opponents.drift_multipliers().get(position, 1.0)
         if drift >= 1.4:
@@ -212,16 +237,24 @@ class Recommender:
 
     # ------------------------------------------------------------------
 
-    def observe_pick(self, state: DraftState, player_id: str) -> None:
+    def observe_pick(
+        self, state: DraftState, player_id: str, position: Optional[str] = None
+    ) -> None:
         """Feed a completed pick into the opponent model.
 
         Called for every pick, mine and theirs, so the model's sense of the room
         stays current.
+
+        ``position`` may be given for a player who is not on the board at all --
+        a rookie, most often, since historical projections cannot see anyone
+        without NFL history.  The pick still tells us something real about how
+        the room is behaving, and dropping it would leave the run detector blind
+        to exactly the picks most likely to start a run.
         """
         row = self.board.players[self.board.players["player_id"] == player_id]
-        if row.empty:
+        if row.empty and position is None:
             return
-        position = str(row.iloc[0]["position"])
+        position = str(row.iloc[0]["position"]) if not row.empty else str(position)
 
         available = self.board.available(state.drafted_ids)
         team = state.team_on_clock()
