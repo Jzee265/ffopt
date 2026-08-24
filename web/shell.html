@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draft Board</title>
+<style>/*STYLE*/</style>
+</head>
+<body>
+
+<header>
+  <h1>Draft Board</h1>
+  <span class="sub"><span id="season"></span> projections · built from <span id="dataRange"></span></span>
+  <span class="spacer"></span>
+  <button id="btnLog">Draft log</button>
+  <button id="btnUndo">Undo</button>
+  <button id="btnReset">Reset</button>
+</header>
+
+<div class="wrap">
+
+  <!-- left: league setup -->
+  <div class="stack col-left">
+    <div class="panel">
+      <h2>League</h2>
+      <div class="presets">
+        <button data-preset="std12">12 half-PPR</button>
+        <button data-preset="ppr12">12 PPR</button>
+        <button data-preset="ppr10">10 PPR</button>
+        <button data-preset="sf12">Superflex</button>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Teams</label><input type="number" id="cfgTeams" value="12" min="4" max="20"></div>
+        <div class="field"><label>Your slot</label><input type="number" id="cfgSlot" value="11" min="1" max="20"></div>
+        <div class="field"><label>Scoring</label>
+          <select id="cfgScoring">
+            <option value="standard">Standard</option>
+            <option value="half_ppr">Half PPR</option>
+            <option value="ppr" selected>Full PPR</option>
+          </select>
+        </div>
+        <div class="field"><label>Order</label>
+          <select id="cfgSnake"><option value="snake" selected>Snake</option><option value="linear">Linear</option></select>
+        </div>
+        <div class="field"><label>QB</label><input type="number" id="cfgQB" value="1" min="0" max="3"></div>
+        <div class="field"><label>RB</label><input type="number" id="cfgRB" value="2" min="0" max="5"></div>
+        <div class="field"><label>WR</label><input type="number" id="cfgWR" value="2" min="0" max="6"></div>
+        <div class="field"><label>TE</label><input type="number" id="cfgTE" value="1" min="0" max="3"></div>
+        <div class="field"><label>Flex</label><input type="number" id="cfgFLEX" value="1" min="0" max="4"></div>
+        <div class="field"><label>Superflex</label><input type="number" id="cfgSF" value="0" min="0" max="2"></div>
+        <div class="field"><label>Bench</label><input type="number" id="cfgBench" value="6" min="0" max="15"></div>
+        <div class="field"><label>TE bonus/rec</label><input type="number" id="cfgTEP" value="0" step="0.5" min="0" max="2"></div>
+      </div>
+      <div id="leagueInfo"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Your roster</h2>
+      <div id="rosterBody"></div>
+      <div id="needs"></div>
+    </div>
+  </div>
+
+  <!-- middle: entry + recommendations + board -->
+  <div class="stack col-main">
+    <div class="panel">
+      <div id="status"></div>
+      <div id="entryWrap">
+        <div class="row">
+          <input type="text" id="entry" placeholder="Type a name and press Enter to record the pick…" autocomplete="off" spellcheck="false">
+          <button id="btnRookie" title="Record a player with no NFL history">Add rookie</button>
+        </div>
+        <div id="suggest"></div>
+      </div>
+      <div class="btnrow">
+        <button id="btnRec" class="primary">Recommend</button>
+        <div class="field" style="margin-left:auto"><label>Sims</label><input type="number" id="cfgSims" value="120" min="20" max="600" step="20" style="width:90px"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Recommendation</h2>
+      <div id="recBody"></div>
+      <div id="roomRead"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Available</h2>
+      <div class="board-head">
+        <input type="text" id="boardSearch" placeholder="Search board…" autocomplete="off">
+        <div class="filters">
+          <button data-posfilter="" class="on">All</button>
+          <button data-posfilter="QB">QB</button>
+          <button data-posfilter="RB">RB</button>
+          <button data-posfilter="WR">WR</button>
+          <button data-posfilter="TE">TE</button>
+        </div>
+        <span id="boardCount"></span>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Tier</th><th>Proj</th><th>VOR</th><th></th></tr></thead>
+          <tbody id="boardBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- right: pick log -->
+  <div class="stack col-side">
+    <div class="panel">
+      <h2>Picks</h2>
+      <div id="logBody" class="scroll"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal" id="logModal">
+  <div class="modal-inner">
+    <h2>Draft log</h2>
+    <p class="muted" style="font-size:12.5px;margin-top:0">One name per line, in pick order. Copy this to save your draft, or paste a log in and press Load to restore it. Rookies are stored as <code>*Name|POS</code>.</p>
+    <textarea id="logText" spellcheck="false"></textarea>
+    <div class="btnrow">
+      <button id="btnLogCopy">Copy</button>
+      <button id="btnLogLoad" class="primary">Load</button>
+      <span style="flex:1"></span>
+      <button id="btnLogClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="flash"></div>
+
+<script>window.__BOARD__ = "DATA_PLACEHOLDER";</script>
+<script>//ENGINE</script>
+<script>//UI</script>
+</body>
+</html>
