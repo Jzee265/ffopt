@@ -34,6 +34,43 @@ shortlist. `help` lists the other commands (`board`, `roster`, `need`, `room`,
 
 ---
 
+## The browser version
+
+`draft_board.html` is the whole thing as a single file. Double-click it — no
+Python, no install, works offline, and it runs fine on a phone.
+
+The projections are baked in, but **scoring and roster shape are not**. The page
+carries each player's projected *stat line* and re-scores it under whatever
+league you set up, so switching from standard to PPR or adding a superflex slot
+genuinely reshuffles the board rather than re-ranking a frozen list. The VOR
+maths, tiering, adaptive opponent model and Monte Carlo are all ported to
+JavaScript and produce the same numbers as the Python engine, about seven times
+faster (roughly 1.2 seconds per recommendation).
+
+Type a name and press Enter to log each pick. The matcher ranks surnames above
+first names, because that is how picks get called out in a room — typing
+"chase" gives you Ja'Marr Chase, not Chase Brown. Rookies, which the
+projections structurally cannot see, get logged as placeholders via **Add
+rookie**: they hold their place in the draft order and feed the run detector a
+position, without pretending to be projected.
+
+There is no browser storage. Instead **Draft log** gives you a plain text list
+of picks you can copy, paste into another device, or reload after a refresh —
+readable by a human and portable in a way `localStorage` is not.
+
+To rebuild it after a new season lands:
+
+```bash
+python export_board.py    # refit projections, write board_data.json
+python build_html.py      # inline everything into draft_board.html
+```
+
+`session.py` is a third option: the same engine driven one command at a time
+(`init`, `pick`, `rec`, `board`, `roster`, `rookie`, `undo`), useful when you
+want the real Python engine without an interactive terminal loop.
+
+---
+
 ## The idea
 
 Three questions have to be answered in order, and most tools stop after the
@@ -123,6 +160,46 @@ the data at all.
 
 ---
 
+## Does it work?
+
+The honest test of a draft tool is not projection accuracy — it is whether
+following it wins. So `backtest.py` runs complete drafts in past seasons using
+only information available beforehand, then scores each team on what its players
+*actually* did. Every strategy drafts from the same board, in the same slot,
+against the same room, on the same seed. Only the one seat differs.
+
+**1,360 full drafts** — 2022–2025, three league types (12-team half-PPR, 10-team
+PPR, 12-team superflex), every draft slot, two seeds:
+
+| strategy | starting-lineup points | vs VOR | p |
+|---|---|---|---|
+| **optimizer** | **1562.7** | **+25.4** | **0.015** |
+| vor | 1537.3 | — | — |
+| adp_ish | 1527.8 | −9.5 | 0.41 |
+| best_points | 1500.6 | −36.7 | 0.010 |
+| last_year | 1382.7 | −154.6 | <0.0001 |
+
+Read it in three parts.
+
+**Value over replacement is the big win.** Drafting off last season's points
+costs 155 points a season against VOR — that gap dwarfs everything else here,
+and it is the single most valuable thing in the repository. Chasing raw
+projected totals costs 37.
+
+**The simulation layer adds a real but modest edge.** +25.4 points over plain
+VOR, 95% CI [+5.2, +45.6], winning 54% of head-to-head drafts. Statistically
+significant, and consistent in direction across all three league types (+18.8,
++23.2, +33.1) and all four seasons (+20.7 to +29.1) — but it is an edge, not a
+transformation. Anyone claiming a draft model doubles your win rate is selling
+something.
+
+**The superflex result is the most encouraging.** The optimizer's margin is
+largest (+33.1) in the league type that departs furthest from convention, which
+is what you would hope for from a system that derives replacement levels from
+league structure instead of inheriting them from a cheat sheet.
+
+---
+
 ## As a library
 
 ```python
@@ -206,9 +283,11 @@ role information, but not events that happened after the last snap of 2025.
 **Projections are good, not great.** Over 2019–2025 the top 120 players by
 projection averaged 163.6 actual points, against 161.2 for ranking by last
 season alone and 192.6 for a perfect oracle. So the model beats the naive
-baseline, and both are a long way from clairvoyant. Fantasy football is mostly
-variance; the value here is in the valuation and draft-flow layers, which turn
-merely-decent projections into good decisions.
+baseline by a nose, and both are a long way from clairvoyant. Fantasy football
+is mostly variance. The value here is in the valuation and draft-flow layers,
+which turn merely-decent projections into good decisions — that is exactly what
+the backtest above shows, and it is why effort went there rather than into
+chasing another point of projection accuracy.
 
 **Kickers and defenses are not modelled.** The scoring vocabulary includes
 kicking stats and the roster code handles K/DST slots, but no projections are
